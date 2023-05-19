@@ -1,4 +1,4 @@
-from collections import deque
+import heapq
 
 
 class Graph_astar:
@@ -6,25 +6,31 @@ class Graph_astar:
         self.graph = graph
         self.directed = directed
 
-    def depth_first_search(self, start_node, goal_node):
+    def a_star_search(self, start_node, goal_node, heuristic, cost_function):
+            return self.astar_undirected(start_node, goal_node, heuristic, cost_function)
+
+    def astar_undirected(self, start_node, goal_node, heuristic, cost_function):
         visited = set()
-        queue = deque([(start_node, [], 0)])  # Include cumulative weight in the queue
-        visited.add(start_node)
+        priority_queue = [(0 + heuristic(start_node), 0, start_node, [start_node])]  # (f_value, g_value, node, path)
 
-        while queue:
-            node, path, weight = queue.pop()
-            path = path + [node]
+        while priority_queue:
+            _, g_value, current_node, path = heapq.heappop(priority_queue)
 
-            if node == goal_node:
-                return path, goal_node  # Return the path and cumulative weight if the goal node is reached
+            if current_node in visited:
+                continue
 
-            for neighbor, edge_weight in self.graph[node]:
+            visited.add(current_node)
+
+            if current_node in goal_node:
+                return path, goal_node
+
+            neighbors = self.graph[current_node]
+
+            for neighbor in neighbors:
                 if neighbor not in visited:
-                    queue.append((neighbor, path, weight + edge_weight))
-                    visited.add(neighbor)
-
-                    if not self.directed:
-                        visited.add(neighbor)  # Mark as visited from the neighbor side if the graph is undirected
+                    new_g_value = g_value + cost_function(current_node, neighbor)
+                    new_path = path + [neighbor]
+                    heapq.heappush(priority_queue, (new_g_value + heuristic(neighbor), new_g_value, neighbor, new_path))
 
         return None, goal_node
 
