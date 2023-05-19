@@ -11,10 +11,6 @@ class Graph_bestfs:
             print(node, "->", end='')
 
     def bfs(self, start_node, goal_node, heuristic):
-            return self.best_first_search_undirected(start_node, goal_node, heuristic)
-
-
-    def best_first_search_undirected(self, start_node, goal_node, heuristic):
         visited = set()
         priority_queue = [(heuristic(start_node), start_node, [start_node])]  # (heuristic_value, node, path)
 

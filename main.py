@@ -11,23 +11,64 @@ from dfs import Graph_dfs
 from astar import Graph_astar
 from dls import Graph_dls
 from ids import Graph_ids
+from BFS import Graph_bestfs
+from bds import Graph_bidirectional
+from ucs import Graph_ucs
+from sa import Graph_sa
 
 DG = nx.DiGraph()
 G = nx.Graph()
 
-Node1_arr = ['A'] * 30
-Node2_arr = ['A'] * 30
+def initializeGraphs():
+    # Initializing graph fo testing
+    G.add_edge('S', 'A', weight=5)
+    DG.add_edge('S', 'A', weight=5)
+
+    G.add_edge('S', 'B', weight=9)
+    DG.add_edge('S', 'B', weight=9)
+
+    G.add_edge('S', 'D', weight=6)
+    DG.add_edge('S', 'D', weight=6)
+
+    G.add_edge('C', 'S', weight=6)
+    DG.add_edge('C', 'S', weight=6)
+
+    G.add_edge('A', 'B', weight=3)
+    DG.add_edge('A', 'B', weight=3)
+    DG.add_edge('B', 'A', weight=2)
+
+    G.add_edge('B', 'C', weight=1)
+    DG.add_edge('B', 'C', weight=1)
+
+    G.add_edge('C', 'F', weight=7)
+    DG.add_edge('C', 'F', weight=7)
+
+    G.add_edge('D', 'C', weight=2)
+    DG.add_edge('D', 'C', weight=2)
+
+    G.add_edge('D', 'E', weight=2)
+    DG.add_edge('D', 'E', weight=2)
+
+    G.add_edge('E', 'G', weight=7)
+    DG.add_edge('E', 'G', weight=7)
+
+    G.add_edge('F', 'G', weight=8)
+    DG.add_edge('F', 'G', weight=8)
+
+    G.add_edge('F', 'D', weight=2)
+    DG.add_edge('F', 'D', weight=2)
 
 
 class Ui_AISearchingTechniquesMainWindow(object):
     counter = 0
     counterG = 0
-    EdgeWeight_arr = [1] * 30
-    HeuristicDict = dict()
-    H = {}
-    start, goal = ' ', ' '
-    graphastar = Graph_astar(G, directed=False)
-    graphastarD = Graph_astar(DG, directed=True)
+
+    def __init__(self):
+        self.heuristics = {'S': 5, 'A': 2, 'B': 1, 'C': 5, 'D': 2, 'E': 1, 'F': 2, 'G': 0}
+        self.weights = {'SA': 5, 'SB': 9, 'SD': 6, 'AB': 3, 'BA': 2, 'BC': 1, 'CS': 6, 'CF': 7, 'DC': 2, 'DE': 2,
+                        'EG': 7, 'FD': 2, 'FG': 8}
+        self.start, self.goal = 'S', 'G'
+        initializeGraphs()
 
     def GeneratePathClicked(self):
         original_stdout = sys.stdout  # Save a reference to the original standard output
@@ -36,7 +77,8 @@ class Ui_AISearchingTechniquesMainWindow(object):
             sys.stdout = f  # Change the standard output to the file we created.
             searchType = str(self.SearchTypecomboBox.currentText())
             graphType = str(self.GraphTypecomboBox.currentText())
-            if (graphType == "Undirectd Graph"):
+
+            if graphType == "Undirectd Graph":
                 if searchType == "BFS":
                     graphbfs = Graph_bfs(G, directed=False)
                     traced_path, goal = graphbfs.breadth_first_search(self.start, self.goal)
@@ -45,6 +87,8 @@ class Ui_AISearchingTechniquesMainWindow(object):
                         print('Path:', end=' ')
                         graphbfs.print_path(traced_path, goal)
                         print()
+                    else:
+                        self.pathNotFound()
 
                 elif searchType == "DFS":
                     graphdfs = Graph_dfs(G, directed=False)
@@ -54,15 +98,19 @@ class Ui_AISearchingTechniquesMainWindow(object):
                         print('Path:', end=' ')
                         graphdfs.print_path(traced_path, goal)
                         print()
+                    else:
+                        self.pathNotFound()
 
                 elif searchType == "DLS":
                     graphdls = Graph_dls(G, directed=False)
-                    traced_path, goal = graphdls.depth_limited_search(self.start, self.goal, 5)
+                    traced_path, goal = graphdls.depth_limited_search(self.start, self.goal, 1)
                     if traced_path:
                         self.PrintResults(traced_path)
                         print('Path:', end=' ')
                         graphdls.print_path(traced_path, goal)
                         print()
+                    else:
+                        self.pathNotFound()
 
                 elif searchType == "IDS":
                     graphids = Graph_ids(G, directed=False)
@@ -72,17 +120,64 @@ class Ui_AISearchingTechniquesMainWindow(object):
                         print('Path:', end=' ')
                         graphids.print_path(traced_path, goal)
                         print()
+                    else:
+                        self.pathNotFound()
 
-                # elif searchType == "A*":
-                #     for i in range(0, self.counter):
-                #         self.graphastar.add_edge(Node1_arr[i], Node2_arr[i], int(self.EdgeWeight_arr[i]))
-                #     start = self.StartNode_input.text()
-                #     goals = Goal_list
-                #     traced_path5, cost3, goal = self.graphastar.a_star_search(start, goals)
-                #     if (traced_path5):
-                #         print('Path:', end=' ')
-                #         Graph_astar.print_path(traced_path5, goal)
-                #         print('\nCost:', cost3)
+                elif searchType == "A*":
+                    graphastar = Graph_astar(G, directed=False)
+                    traced_path, cost, goal = graphastar.a_star_search(self.start, self.goal, self.getHeuristic,
+                                                                       self.getCost)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphastar.print_path(traced_path, goal)
+                        print('\nCost:', cost)
+                    else:
+                        self.pathNotFound()
+
+                elif searchType == "BeFS":
+                    graphBfs = Graph_bestfs(G, directed=False)
+                    traced_path, goal = graphBfs.bfs(self.start, self.goal, self.getHeuristic)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphBfs.print_path(traced_path, goal)
+                        print()
+                    else:
+                        self.pathNotFound()
+
+                elif searchType == "BDS":
+                    graphbds = Graph_bidirectional(G, directed=False)
+                    traced_path, goal = graphbds.bidirectional_search(self.start, self.goal)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphbds.print_path(traced_path, goal)
+                        print()
+                    else:
+                        self.pathNotFound()
+
+                elif searchType == "UCS":
+                    graphucs = Graph_ucs(G, directed=False)
+                    traced_path, goal = graphucs.ucs(self.start, self.goal, self.getCost)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphucs.print_path(traced_path, goal)
+                        print()
+                    else:
+                        self.pathNotFound()
+
+                elif searchType == "SA":
+                    graphsa = Graph_sa(G, directed=False)
+                    traced_path, goal = graphsa.simulated_annealing(self.start, self.goal, self.getHeuristic)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphsa.print_path(traced_path, goal)
+                        print()
+                    else:
+                        self.pathNotFound()
 
             else:
                 if searchType == "BFS":
@@ -93,6 +188,8 @@ class Ui_AISearchingTechniquesMainWindow(object):
                         print('Path:', end=' ')
                         graphbfs.print_path(traced_path, goal)
                         print()
+                    else:
+                        self.pathNotFound()
 
                 elif searchType == "DFS":
                     graphdfs = Graph_dfs(DG, directed=True)
@@ -102,6 +199,8 @@ class Ui_AISearchingTechniquesMainWindow(object):
                         print('Path:', end=' ')
                         graphdfs.print_path(traced_path, goal)
                         print()
+                    else:
+                        self.pathNotFound()
 
                 elif searchType == "DLS":
                     graphdls = Graph_dls(DG, directed=True)
@@ -111,6 +210,8 @@ class Ui_AISearchingTechniquesMainWindow(object):
                         print('Path:', end=' ')
                         graphdls.print_path(traced_path, goal)
                         print()
+                    else:
+                        self.pathNotFound()
 
                 elif searchType == "IDS":
                     graphids = Graph_ids(DG, directed=True)
@@ -120,17 +221,64 @@ class Ui_AISearchingTechniquesMainWindow(object):
                         print('Path:', end=' ')
                         graphids.print_path(traced_path, goal)
                         print()
+                    else:
+                        self.pathNotFound()
 
-                # elif searchType == "A*":
-                #     for i in range(0, self.counter):
-                #         self.graphastar.add_edge(Node1_arr[i], Node2_arr[i], int(self.EdgeWeight_arr[i]))
-                #     start = self.StartNode_input.text()
-                #     goals = Goal_list
-                #     traced_path5, cost3, goal = self.graphastar.a_star_search(start, goals)
-                #     if (traced_path5):
-                #         print('Path:', end=' ')
-                #         Graph_astar.print_path(traced_path5, goal)
-                #         print('\nCost:', cost3)
+                elif searchType == "A*":
+                    graphastar = Graph_astar(DG, directed=True)
+                    traced_path, cost, goal = graphastar.a_star_search(self.start, self.goal, self.getHeuristic,
+                                                                       self.getCost)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphastar.print_path(traced_path, goal)
+                        print('\nCost:', cost)
+                    else:
+                        self.pathNotFound()
+
+                elif searchType == "BeFS":
+                    graphBfs = Graph_bestfs(DG, directed=True)
+                    traced_path, goal = graphBfs.bfs(self.start, self.goal, self.getHeuristic)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphBfs.print_path(traced_path, goal)
+                        print()
+                    else:
+                        self.pathNotFound()
+
+                elif searchType == "BDS":
+                    graphbds = Graph_bidirectional(DG, directed=True)
+                    traced_path, goal = graphbds.bidirectional_search(self.start, self.goal)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphbds.print_path(traced_path, goal)
+                        print()
+                    else:
+                        self.pathNotFound()
+
+                elif searchType == "UCS":
+                    graphucs = Graph_ucs(DG, directed=True)
+                    traced_path, goal = graphucs.ucs(self.start, self.goal, self.getCost)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphucs.print_path(traced_path, goal)
+                        print()
+                    else:
+                        self.pathNotFound()
+
+                elif searchType == "SA":
+                    graphsa = Graph_sa(DG, directed=True)
+                    traced_path, goal = graphsa.simulated_annealing(self.start, self.goal, self.getHeuristic)
+                    if traced_path:
+                        self.PrintResults(traced_path)
+                        print('Path:', end=' ')
+                        graphsa.print_path(traced_path, goal)
+                        print()
+                    else:
+                        self.pathNotFound()
 
         sys.stdout = original_stdout  # Reset the standard output to its original value
 
@@ -140,31 +288,35 @@ class Ui_AISearchingTechniquesMainWindow(object):
         self.TheResult_Label.setText(contents)
 
     def PrintResults(self, path):
-        node_colors = {node: 'red' if node in path else 'none' for node in G.nodes}
+        # changing nodes colors
+        node_colors = {node: 'green' if node in path else 'blue' for node in G.nodes}
+        node_colors[self.start], node_colors[self.goal] = 'yellow', 'red'
 
         if self.GraphTypecomboBox.currentText() == "Undirectd Graph":
             pos = nx.spring_layout(G)
-            nx.draw(G, pos, with_labels=True, node_size=1500)
+            nx.draw(G, pos, with_labels=True, node_size=1500, node_color=list(node_colors.values()))
             nx.draw_networkx_edge_labels(G, pos, font_size=26, edge_labels=nx.get_edge_attributes(G, 'weight'))
             nx.draw_networkx_nodes(G, pos, node_color=list(node_colors.values()))
             plt.show()
         elif self.GraphTypecomboBox.currentText() == "Directed Graph":
             pos = nx.spring_layout(DG)
-            nx.draw(DG, pos, with_labels=True, node_size=1500)
+            nx.draw(DG, pos, with_labels=True, node_size=1500, node_color=list(node_colors.values()))
             nx.draw_networkx_edge_labels(DG, pos, font_size=26, edge_labels=nx.get_edge_attributes(DG, 'weight'))
             nx.draw_networkx_nodes(G, pos, node_color=list(node_colors.values()))
             plt.show()
 
+    def pathNotFound(self):
+        # Create and configure the QMessageBox
+        message_box = QMessageBox()
+        message_box.setIcon(QMessageBox.Warning)
+        message_box.setWindowTitle("Path Not Found")
+        message_box.setText("The specified path could not be found.")
+        message_box.setStandardButtons(QMessageBox.Ok)
+
+        # Display the message box
+        message_box.exec_()
+
     def GenerateGraphClicked(self):
-        G.add_edge('A', 'B', weight=1)
-        DG.add_edge('A', 'B', weight=1)
-
-        G.add_edge('B', 'C', weight=1)
-        DG.add_edge('B', 'C', weight=1)
-
-        G.add_edge('C', 'D', weight=1)
-        DG.add_edge('C', 'D', weight=1)
-
         if self.GraphTypecomboBox.currentText() == "Undirectd Graph":
             pos = nx.spring_layout(G)
             nx.draw(G, pos, with_labels=True, node_size=1500)
@@ -180,11 +332,11 @@ class Ui_AISearchingTechniquesMainWindow(object):
         N1 = self.Node1_input.text()
         N2 = self.Node2_input.text()
         W = self.EdgeWieght_input.text()
+
         G.add_edge(N1, N2, weight=W)
         DG.add_edge(N1, N2, weight=W)
-        Node1_arr[self.counter] = N1
-        Node2_arr[self.counter] = N2
-        self.EdgeWeight_arr[self.counter] = W
+        self.weights[N1 + N2] = W   # Adding weights of edges to list used in algorithms
+
         self.counter = self.counter + 1
         self.Node1_input.clear()
         self.Node2_input.clear()
@@ -193,12 +345,19 @@ class Ui_AISearchingTechniquesMainWindow(object):
     def HeuristicPushed(self):
         InputHeuristic = int(self.NodeHeuristic_input.text())
         InputNodeH = self.Node_Input.text()
-        self.H[self.Node_Input.text()] = self.NodeHeuristic_input.text()
-        self.HeuristicDict.update({InputNodeH: InputHeuristic})
-        self.graphastar.set_huristics(self.HeuristicDict)
-        self.graphastarD.set_huristics(self.HeuristicDict)
+
+        self.heuristics[InputNodeH] = InputHeuristic    # Adding heuristic to list used in algorithms
         self.Node_Input.clear()
         self.NodeHeuristic_input.clear()
+
+    # These getters will be passed to algorithms so they can
+    # access heuristics and weights of nodes and edges
+    def getHeuristic(self, node):
+        return self.heuristics[node]
+    def getCost(self, node1, node2):
+        if not self.weights.get(node1 + node2):
+            return self.weights[node2 + node1]
+        return self.weights[node1 + node2]
 
     def SubmitClicked(self):
         self.start = self.StartNode_input.text()
@@ -217,12 +376,12 @@ class Ui_AISearchingTechniquesMainWindow(object):
         font = QtGui.QFont()
         font.setPointSize(8)
         self.SearchTypecomboBox.setFont(font)
+
+        # To display names of all algorithms
         self.SearchTypecomboBox.setObjectName("SearchTypecomboBox")
-        self.SearchTypecomboBox.addItem("")
-        self.SearchTypecomboBox.addItem("")
-        self.SearchTypecomboBox.addItem("")
-        self.SearchTypecomboBox.addItem("")
-        self.SearchTypecomboBox.addItem("")
+        for i in range(9):
+            self.SearchTypecomboBox.addItem("")
+
         self.GenerateGraphButton = QtWidgets.QPushButton(self.centralwidget)
         self.GenerateGraphButton.setGeometry(QtCore.QRect(630, 240, 131, 31))
         self.GenerateGraphButton.setObjectName("GenerateGraphButton")
@@ -382,7 +541,10 @@ class Ui_AISearchingTechniquesMainWindow(object):
         self.SearchTypecomboBox.setItemText(2, _translate("AISearchingTechniquesMainWindow", "DLS"))
         self.SearchTypecomboBox.setItemText(3, _translate("AISearchingTechniquesMainWindow", "IDS"))
         self.SearchTypecomboBox.setItemText(4, _translate("AISearchingTechniquesMainWindow", "A*"))
-
+        self.SearchTypecomboBox.setItemText(5, _translate("AISearchingTechniquesMainWindow", "BeFS"))
+        self.SearchTypecomboBox.setItemText(6, _translate("AISearchingTechniquesMainWindow", "UCS"))
+        self.SearchTypecomboBox.setItemText(7, _translate("AISearchingTechniquesMainWindow", "BDS"))
+        self.SearchTypecomboBox.setItemText(8, _translate("AISearchingTechniquesMainWindow", "SA"))
 
         self.GenerateGraphButton.setText(_translate("AISearchingTechniquesMainWindow", "Generate Graph"))
         self.Node1Label.setText(_translate("AISearchingTechniquesMainWindow", "Node 1"))

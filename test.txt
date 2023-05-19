@@ -1,2 +1,0 @@
-Path: Path from A to C:
-A  ->  B  ->  C  ->  

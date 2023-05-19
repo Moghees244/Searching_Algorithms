@@ -7,9 +7,6 @@ class Graph_astar:
         self.directed = directed
 
     def a_star_search(self, start_node, goal_node, heuristic, cost_function):
-            return self.astar_undirected(start_node, goal_node, heuristic, cost_function)
-
-    def astar_undirected(self, start_node, goal_node, heuristic, cost_function):
         visited = set()
         priority_queue = [(0 + heuristic(start_node), 0, start_node, [start_node])]  # (f_value, g_value, node, path)
 
@@ -22,7 +19,7 @@ class Graph_astar:
             visited.add(current_node)
 
             if current_node in goal_node:
-                return path, goal_node
+                return path, self.getCostOfPath(path, cost_function), goal_node
 
             neighbors = self.graph[current_node]
 
@@ -32,9 +29,16 @@ class Graph_astar:
                     new_path = path + [neighbor]
                     heapq.heappush(priority_queue, (new_g_value + heuristic(neighbor), new_g_value, neighbor, new_path))
 
-        return None, goal_node
+        return None, 0, goal_node
 
     def print_path(self, path, goal):
         print("Path from {} to {}:".format(path[0], goal))
         for node in path:
             print(node, " -> ", end=' ')
+
+    def getCostOfPath(self, path, cost_function):
+        cost = 0
+        for i in range(len(path)-1):
+            cost += cost_function(path[i], path[i+1])
+        return cost
+
